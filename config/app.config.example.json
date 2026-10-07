@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "project": {
+    "name": "Loredotexe",
+    "description": "Free-first n8n-orchestrated AI video production automation",
+    "channelName": "The 10min Explosion",
+    "version": "0.1.0",
+    "environment": "development"
+  },
+  "runtime": {
+    "timezone": "UTC",
+    "developmentMode": true,
+    "logLevel": "INFO",
+    "dryRun": true
+  },
+  "storage": {
+    "baseDir": "./storage",
+    "tempDir": "./storage/temp",
+    "outputDir": "./storage/output",
+    "archiveDir": "./storage/archive"
+  },
+  "videoProfile": {
+    "preset": "youtube_1080p",
+    "width": 1920,
+    "height": 1080,
+    "aspectRatio": "16:9",
+    "frameRate": 30,
+    "videoCodec": "libx264",
+    "audioCodec": "aac",
+    "targetDurationSeconds": 600,
+    "maxDurationSeconds": 660
+  },
+  "audioProfile": {
+    "engine": "edge-tts",
+    "defaultVoice": "en-US-ChristopherNeural",
+    "sampleRate": 44100,
+    "audioBitrate": "192k",
+    "normalizeAudio": true
+  },
+  "renderEngine": {
+    "engine": "ffmpeg",
+    "threads": 4,
+    "hardwareAcceleration": "auto"
+  },
+  "pipelineGates": {
+    "requireScriptApproval": true,
+    "requireAudioApproval": true,
+    "requireFinalRenderApproval": true,
+    "autoPublishToYouTube": false
+  }
+}

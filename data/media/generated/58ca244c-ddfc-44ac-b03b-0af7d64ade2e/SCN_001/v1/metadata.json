@@ -1,0 +1,27 @@
+{
+  "asset_id": "ASSET_SCN_001_v1_5f9327ad",
+  "project_id": "58ca244c-ddfc-44ac-b03b-0af7d64ade2e",
+  "scene_id": "SCN_001",
+  "type": "video",
+  "provider": "mock",
+  "model": "mock-video",
+  "version": 1,
+  "file_path": "E:\\Personal Projects\\Loredotexe\\data\\media\\generated\\58ca244c-ddfc-44ac-b03b-0af7d64ade2e\\SCN_001\\v1\\scene.mp4",
+  "file_hash": "6f3cfd27eeca16f3bbaf371029c6c51102d1c1b790a3600ad0efee63cd0b7f92",
+  "prompt_hash": "7e50f787dd6eb3063828c222351429e3bafc726346ba75fdc93ac006654041fe",
+  "generation_parameters": {
+    "width": 832,
+    "height": 480,
+    "fps": 16,
+    "duration_seconds": 5,
+    "prompt": "Voyager 1 probe drifting into deep interstellar void with glowing diagnostic telemetry | Camera: wide shot, slow push in | Lighting: Cold starlight rim lighting | Camera: wide, slow_push_in | Lighting: Dramatic cold starlight rim lighting | Style: The 10min Explosion Signature, color grading: Deep Space Navy, Electric Cyan, Warning Amber, High contrast, Volumetric cosmic rays",
+    "negative_prompt": "blurry, low quality, artifacts, cartoon, bad lighting"
+  },
+  "duration_seconds": 5,
+  "width": 832,
+  "height": 480,
+  "fps": 16,
+  "file_size_bytes": 544,
+  "created_at": "2026-10-07T19:08:33.462Z",
+  "status": "VALID"
+}

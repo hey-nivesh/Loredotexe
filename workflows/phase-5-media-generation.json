@@ -1,0 +1,272 @@
+{
+  "name": "Loredotexe — Phase 5 Media Generation Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "When clicking ‘Execute Workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: Project ID & Generation Mode\nreturn {\n  projectId: 'test-project-phase-5',\n  mode: 'mock',\n  provider: 'mock',\n  force_regenerate: false\n};"
+      },
+      "id": "2",
+      "name": "Phase 5 Execution Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://127.0.0.1:3000/api/media/hardware",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "3",
+      "name": "Detect Hardware & Model Compatibility",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $('Phase 5 Execution Input').first().json.projectId }}/storyboard",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "4",
+      "name": "Fetch Storyboard Package",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst storyboardRecord = input.storyboard || input;\nconst storyboardPackage = storyboardRecord.storyboard_json ? JSON.parse(storyboardRecord.storyboard_json) : (storyboardRecord.storyboard || storyboardRecord);\n\nif (!storyboardPackage || !storyboardPackage.scenes || storyboardPackage.scenes.length === 0) {\n  throw new Error('Validation Error: No valid Phase 4 canonical scenes found in storyboard.');\n}\n\nreturn {\n  valid: true,\n  projectId: storyboardPackage.project_id,\n  storyboardPackage: storyboardPackage,\n  sceneCount: storyboardPackage.scenes.length\n};"
+      },
+      "id": "5",
+      "name": "Validate Storyboard For Media",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $json.projectId }}/transition",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetStatus\": \"MEDIA_GENERATING\"\n}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "6",
+      "name": "Transition to MEDIA_GENERATING",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3000/api/media/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"projectId\": \"{{ $('Validate Storyboard For Media').first().json.projectId }}\",\n  \"storyboardPackage\": {{ JSON.stringify($('Validate Storyboard For Media').first().json.storyboardPackage) }},\n  \"options\": {\n    \"mode\": \"{{ $('Phase 5 Execution Input').first().json.mode || 'mock' }}\",\n    \"provider\": \"{{ $('Phase 5 Execution Input').first().json.provider || 'mock' }}\",\n    \"force_regenerate\": {{ $('Phase 5 Execution Input').first().json.force_regenerate || false }}\n  }\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "7",
+      "name": "Execute Media Generation Engine",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $('Validate Storyboard For Media').first().json.projectId }}/transition",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetStatus\": \"MEDIA_READY\",\n  \"metadata\": {\n    \"manifestPath\": \"{{ $json.manifest_path }}\",\n    \"completedCount\": {{ $json.completed_assets_count }}\n  }\n}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "8",
+      "name": "Transition to MEDIA_READY",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const mediaResult = $('Execute Media Generation Engine').first().json;\nconst hw = $('Detect Hardware & Model Compatibility').first().json;\nconst manifest = mediaResult.manifest || {};\n\nreturn {\n  success: mediaResult.success,\n  projectId: mediaResult.project_id,\n  generationMode: mediaResult.mode,\n  hardware: {\n    gpuName: hw.hardware?.gpu?.name,\n    vramGb: hw.hardware?.gpu?.vram_gb,\n    recommendedMode: hw.recommended_mode\n  },\n  manifestSummary: manifest.summary || {},\n  totalAssetsCount: mediaResult.completed_assets_count || 0,\n  manifestPath: mediaResult.manifest_path,\n  message: 'Phase 5 media generation executed end-to-end successfully! All scene video assets validated, hashed, and indexed. Ready for Phase 6 assembly!'\n};"
+      },
+      "id": "9",
+      "name": "Format Phase 5 Media Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute Workflow’": {
+      "main": [
+        [
+          {
+            "node": "Phase 5 Execution Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Phase 5 Execution Input": {
+      "main": [
+        [
+          {
+            "node": "Detect Hardware & Model Compatibility",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Hardware & Model Compatibility": {
+      "main": [
+        [
+          {
+            "node": "Fetch Storyboard Package",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Storyboard Package": {
+      "main": [
+        [
+          {
+            "node": "Validate Storyboard For Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Storyboard For Media": {
+      "main": [
+        [
+          {
+            "node": "Transition to MEDIA_GENERATING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transition to MEDIA_GENERATING": {
+      "main": [
+        [
+          {
+            "node": "Execute Media Generation Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Media Generation Engine": {
+      "main": [
+        [
+          {
+            "node": "Transition to MEDIA_READY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transition to MEDIA_READY": {
+      "main": [
+        [
+          {
+            "node": "Format Phase 5 Media Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "phase-5-media-generation-v1"
+}

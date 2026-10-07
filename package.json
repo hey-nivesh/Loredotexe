@@ -1,0 +1,33 @@
+{
+  "name": "loredotexe",
+  "version": "0.1.0",
+  "description": "Free-first n8n-orchestrated AI video production automation for 'The 10min Explosion'",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node --preserve-symlinks --preserve-symlinks-main src/server.js",
+    "server": "node --preserve-symlinks --preserve-symlinks-main src/server.js",
+    "test": "node --preserve-symlinks --preserve-symlinks-main tests/index.js",
+    "db:init": "node --preserve-symlinks --preserve-symlinks-main scripts/init-db.js",
+    "verify:phase-1": "node --preserve-symlinks --preserve-symlinks-main scripts/verify-phase-1.js",
+    "verify:phase-2": "node --preserve-symlinks --preserve-symlinks-main scripts/verify-phase-2.js",
+    "verify:phase-3": "node --preserve-symlinks --preserve-symlinks-main scripts/verify-phase-3.js",
+    "verify:phase-4": "node --preserve-symlinks --preserve-symlinks-main scripts/verify-phase-4.js",
+    "verify:phase-5": "node --preserve-symlinks --preserve-symlinks-main scripts/verify-phase-5.js",
+    "verify:phase-6": "node --preserve-symlinks --preserve-symlinks-main scripts/verify-phase-6.js",
+    "verify": "node --preserve-symlinks --preserve-symlinks-main scripts/verify-phase-6.js"
+  },
+  "keywords": [
+    "n8n",
+    "video-automation",
+    "youtube",
+    "orchestration",
+    "sqlite"
+  ],
+  "author": "The 10min Explosion Team",
+  "license": "UNLICENSED",
+  "private": true
+}

@@ -1,0 +1,147 @@
+{
+  "schema_version": "1.0.0",
+  "project_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  "research_run_id": "run-storyboard-fixture-001",
+  "script_version": 1,
+  "topic": "The Voyager Interstellar Anomaly: Unexplained Telemetry",
+  "title_options": [
+    "The Insane Truth Behind The Voyager Telemetry Anomaly",
+    "How NASA Hacked a Probe 15 Billion Miles Away"
+  ],
+  "central_question": "How did NASA engineers diagnose and resolve corrupted telemetry on Voyager 1 from 15 billion miles away?",
+  "audience_profile": "general_internet_literate",
+  "target_duration_seconds": 600,
+  "estimated_duration_seconds": 580,
+  "spoken_word_count": 1400,
+  "narration_wpm": 145,
+  "outline": [
+    { "chapter_id": "ch-01-hook", "heading": "The Glitch in the Matrix", "target_words": 150 },
+    { "chapter_id": "ch-02-background", "heading": "Before the Chaos Began", "target_words": 200 },
+    { "chapter_id": "ch-03-catalyst", "heading": "The Incident That Changed Everything", "target_words": 250 },
+    { "chapter_id": "ch-04-mechanism", "heading": "How It Actually Works", "target_words": 300 },
+    { "chapter_id": "ch-05-controversy", "heading": "The Great Debate & Wild Theories", "target_words": 200 },
+    { "chapter_id": "ch-06-reality-check", "heading": "Fact vs Fiction: The Hard Evidence", "target_words": 150 },
+    { "chapter_id": "ch-07-takeaway", "heading": "The Final Verdict", "target_words": 150 }
+  ],
+  "chapters": [
+    {
+      "chapter_id": "ch-01-hook",
+      "index": 1,
+      "heading": "The Glitch in the Matrix",
+      "purpose": "Hook the audience with the interstellar anomaly.",
+      "narration": "Picture this: You are looking at one of the most fascinating events in science. Voyager 1 launched in 1977 and is currently over 15 billion miles away in interstellar space. In late 2023, it suddenly started sending back gibberish.",
+      "spoken_word_count": 42,
+      "estimated_duration_seconds": 17,
+      "referenced_claim_ids": ["claim-v1-01"],
+      "opening_transition": "Picture this:",
+      "closing_transition": "To understand how we got here, we have to rewind."
+    },
+    {
+      "chapter_id": "ch-02-background",
+      "index": 2,
+      "heading": "Before the Chaos Began",
+      "purpose": "Establish historical context and 1970s hardware baseline.",
+      "narration": "NASA launched the twin Voyager probes in 1977 to explore the outer solar system. To put this in perspective, their onboard computers have less memory than a modern digital car key.",
+      "spoken_word_count": 34,
+      "estimated_duration_seconds": 14,
+      "referenced_claim_ids": ["claim-v1-01"],
+      "opening_transition": "Before everything went completely off the rails,",
+      "closing_transition": "And that is when the warning sirens started going off."
+    },
+    {
+      "chapter_id": "ch-03-catalyst",
+      "index": 3,
+      "heading": "The Incident That Changed Everything",
+      "purpose": "Detail the memory chip failure and crisis response.",
+      "narration": "The definitive milestone occurred when engineers discovered that a single 1970s memory chip on the Flight Data Subsystem had corrupted its scientific readouts. Basically the entire engineering department having a collective panic attack.",
+      "spoken_word_count": 36,
+      "estimated_duration_seconds": 15,
+      "referenced_claim_ids": ["claim-v1-02"],
+      "opening_transition": "Here is where things get genuinely wild:",
+      "closing_transition": "Naturally, everyone tried to figure out what was actually happening."
+    },
+    {
+      "chapter_id": "ch-04-mechanism",
+      "index": 4,
+      "heading": "How It Actually Works",
+      "purpose": "Explain code relocation and interstellar telemetry physics.",
+      "narration": "Think of how a car engine sputters when a single spark plug misfires. Here is the verified technical reality: NASA engineers transmitted commands to divide the affected code and store it across healthy memory chips. Radio signals took 22.5 hours each way.",
+      "spoken_word_count": 44,
+      "estimated_duration_seconds": 18,
+      "referenced_claim_ids": ["claim-v1-02"],
+      "opening_transition": "Let us break down the actual mechanics without sounding like a boring textbook.",
+      "closing_transition": "Which brings us to the elephant in the room."
+    },
+    {
+      "chapter_id": "ch-05-controversy",
+      "index": 5,
+      "heading": "The Great Debate & Wild Theories",
+      "purpose": "Debunk alien contact theories and social media hysteria.",
+      "narration": "Now, the internet immediately did what the internet does best: theorize about alien interference. But scientific telemetry confirmed it was simply hardware degradation from 47 years of cosmic radiation.",
+      "spoken_word_count": 31,
+      "estimated_duration_seconds": 13,
+      "referenced_claim_ids": ["claim-v1-02"],
+      "opening_transition": "Now, the internet immediately did what the internet does best: theorize.",
+      "closing_transition": "So what is actual verified reality, and what is total fiction?"
+    },
+    {
+      "chapter_id": "ch-06-reality-check",
+      "index": 6,
+      "heading": "Fact vs Fiction: The Hard Evidence",
+      "purpose": "Provide verified timeline receipts.",
+      "narration": "Time for a reality check. In May 2024, all four active science instruments resumed returning clean data. That is verified on official record.",
+      "spoken_word_count": 24,
+      "estimated_duration_seconds": 10,
+      "referenced_claim_ids": ["claim-v1-02"],
+      "opening_transition": "Time for a reality check.",
+      "closing_transition": "Which leaves us with one final, undeniable conclusion."
+    },
+    {
+      "chapter_id": "ch-07-takeaway",
+      "index": 7,
+      "heading": "The Final Verdict",
+      "purpose": "Deliver the climax and closing verdict.",
+      "narration": "At the end of the day, here is the real takeaway: Voyager 1 is still alive and exploring the unknown. Moral of the story: always double-check the receipts before believing Twitter headlines. That is the complete 10-minute explosion.",
+      "spoken_word_count": 39,
+      "estimated_duration_seconds": 16,
+      "referenced_claim_ids": ["claim-v1-01"],
+      "opening_transition": "At the end of the day, here is the real takeaway:",
+      "closing_transition": "See you in the next one."
+    }
+  ],
+  "full_narration": "Picture this: You are looking at one of the most fascinating events in science...",
+  "humor_annotations": [
+    {
+      "annotation_id": "humor-v01",
+      "chapter_id": "ch-03-catalyst",
+      "joke_text": "Basically the entire engineering department having a collective panic attack.",
+      "humor_type": "exaggeration",
+      "related_claim_ids": ["claim-v1-02"],
+      "optional_visual_punchline": "Rapid-fire cartoon alarms flashing in mission control."
+    }
+  ],
+  "meme_suggestions": [
+    {
+      "meme_id": "meme-v01",
+      "chapter_id": "ch-03-catalyst",
+      "trigger_context": "When the memory chip failure is diagnosed",
+      "intended_joke": "This is fine burning room dog meme",
+      "suggested_format_or_reaction": "Animated stylized reproduction of the 'This is fine' dog with coffee",
+      "approximate_duration_seconds": 3,
+      "asset_rights_note": "Original vector art reproduction."
+    }
+  ],
+  "visual_suggestions": [],
+  "factual_claim_references": [
+    { "chapter_id": "ch-01-hook", "claim_id": "claim-v1-01", "statement": "Voyager 1 launched in 1977." },
+    { "chapter_id": "ch-03-catalyst", "claim_id": "claim-v1-02", "statement": "Engineers restored telemetry with backup memory." }
+  ],
+  "qa_report": {
+    "status": "APPROVED_FOR_REVIEW",
+    "score": 100,
+    "findings": []
+  },
+  "approval_status": "APPROVED_FOR_REVIEW",
+  "created_at": "2026-10-06T20:00:00.000Z",
+  "content_hash": "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+}

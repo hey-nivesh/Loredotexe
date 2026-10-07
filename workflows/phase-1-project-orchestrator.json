@@ -1,0 +1,204 @@
+{
+  "name": "Phase 1 - Project Orchestrator (State & Lifecycle)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "When clicking ‘Execute Workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mock project input for Phase 1 demonstration\nreturn {\n  title: 'The Fall of Cybertron: Complete Lore Timeline',\n  topic: 'Transformers Cybertronian Great War lore and timeline breakdown',\n  channelName: 'The 10min Explosion',\n  idempotencyKey: 'demo-cybertron-fall-001',\n  metadata: {\n    tags: ['transformers', 'lore', 'timeline', 'gaming'],\n    targetDurationSeconds: 600,\n    source: 'n8n_mock_input'\n  }\n};"
+      },
+      "id": "2",
+      "name": "Mock Project Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate project input fields before sending to state store\nconst input = $input.first().json;\n\nif (!input.title || typeof input.title !== 'string' || input.title.trim().length < 3) {\n  throw new Error('Validation Error: Project title is required and must be at least 3 characters.');\n}\n\nif (!input.topic || typeof input.topic !== 'string' || input.topic.trim().length < 2) {\n  throw new Error('Validation Error: Project topic is required.');\n}\n\nreturn {\n  title: input.title.trim(),\n  topic: input.topic.trim(),\n  channelName: input.channelName || 'The 10min Explosion',\n  idempotencyKey: input.idempotencyKey || null,\n  metadata: input.metadata || {}\n};"
+      },
+      "id": "3",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3000/api/projects",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "4",
+      "name": "Create or Get Project (Idempotent)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $json.project.id }}/transition",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetStatus\": \"PLANNING\",\n  \"expectedVersion\": {{ $json.project.version }}\n}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "5",
+      "name": "Transition to PLANNING",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $json.project.id }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "6",
+      "name": "Verify Current Project State",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const project = $input.first().json.project;\n\nreturn {\n  success: true,\n  projectId: project.id,\n  title: project.title,\n  topic: project.topic,\n  channelName: project.channelName,\n  currentStatus: project.status,\n  version: project.version,\n  startedAt: project.startedAt,\n  message: 'Phase 1 orchestration completed successfully. Project is ready for Phase 2 research & scripting.'\n};"
+      },
+      "id": "7",
+      "name": "Format Final Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute Workflow’": {
+      "main": [
+        [
+          {
+            "node": "Mock Project Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Project Input": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Create or Get Project (Idempotent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or Get Project (Idempotent)": {
+      "main": [
+        [
+          {
+            "node": "Transition to PLANNING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transition to PLANNING": {
+      "main": [
+        [
+          {
+            "node": "Verify Current Project State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Current Project State": {
+      "main": [
+        [
+          {
+            "node": "Format Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "phase-1-v2"
+}

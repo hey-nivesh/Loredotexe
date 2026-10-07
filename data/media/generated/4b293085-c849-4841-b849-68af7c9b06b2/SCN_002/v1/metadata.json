@@ -1,0 +1,27 @@
+{
+  "asset_id": "ASSET_SCN_002_v1_28fb1383",
+  "project_id": "4b293085-c849-4841-b849-68af7c9b06b2",
+  "scene_id": "SCN_002",
+  "type": "video",
+  "provider": "mock",
+  "model": "mock-video",
+  "version": 1,
+  "file_path": "E:\\Personal Projects\\Loredotexe\\data\\media\\generated\\4b293085-c849-4841-b849-68af7c9b06b2\\SCN_002\\v1\\scene.mp4",
+  "file_hash": "82b7405332772c150e9068b089b75f808fc96dbad9fa637499dd35754b53a72d",
+  "prompt_hash": "f6f47df4904160897935d05552ce6c1377c69535cd356d9b687f4d19c55235f4",
+  "generation_parameters": {
+    "width": 832,
+    "height": 480,
+    "fps": 16,
+    "duration_seconds": 6,
+    "prompt": "Lead NASA Flight Engineer analyzing fluctuating telemetry data on glowing computer monitors | Camera: medium shot, smooth tracking | Lighting: Cyan monitor glow | Camera: medium, tracking | Lighting: Cyan CRT monitor glow on face in dark mission control room | Style: The 10min Explosion Signature, color grading: Deep Space Navy, Electric Cyan, Warning Amber, High contrast, Volumetric cosmic rays",
+    "negative_prompt": "blurry, low quality, artifacts, distorted hands"
+  },
+  "duration_seconds": 6,
+  "width": 832,
+  "height": 480,
+  "fps": 16,
+  "file_size_bytes": 544,
+  "created_at": "2026-10-07T19:21:18.393Z",
+  "status": "VALID"
+}

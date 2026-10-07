@@ -1,0 +1,136 @@
+{
+  "project_id": "test-prj-phase-6",
+  "script_package": {
+    "schema_version": "1.0.0",
+    "project_id": "test-prj-phase-6",
+    "script_version": 1,
+    "topic": "The Voyager Interstellar Anomaly: Unexplained Telemetry",
+    "chapters": [
+      {
+        "chapter_id": "ch-01-hook",
+        "index": 1,
+        "heading": "The Glitch in the Matrix",
+        "narration": "Picture this: You are looking at one of the most fascinating events in science. Voyager 1 launched in 1977 and is currently over 15 billion miles away in interstellar space.",
+        "spoken_word_count": 30,
+        "estimated_duration_seconds": 5.0
+      },
+      {
+        "chapter_id": "ch-02-background",
+        "index": 2,
+        "heading": "Before the Chaos Began",
+        "narration": "In late 2023, the probe suddenly started sending back gibberish. Engineers at JPL realized a single 1970s memory chip on the Flight Data Subsystem had corrupted its readouts.",
+        "spoken_word_count": 32,
+        "estimated_duration_seconds": 6.0
+      }
+    ]
+  },
+  "storyboard_package": {
+    "schema_version": "1.0.0",
+    "project_id": "test-prj-phase-6",
+    "script_id": "test-script-p6",
+    "script_version": 1,
+    "storyboard_version": 1,
+    "topic": "The Voyager Interstellar Anomaly: Unexplained Telemetry",
+    "visual_style": {
+      "name": "The 10min Explosion Signature",
+      "aspect_ratio": "16:9",
+      "color_palette": ["Deep Space Navy", "Electric Cyan"],
+      "cinematic_aspects": ["High contrast", "Volumetric cosmic rays"]
+    },
+    "character_bible": [
+      {
+        "character_id": "CHAR_001",
+        "name": "Lead NASA Flight Engineer",
+        "visual_description": "Exhausted aerospace telemetry specialist",
+        "default_outfit": "Navy blue mission polo shirt"
+      }
+    ],
+    "location_bible": [
+      {
+        "location_id": "LOC_001",
+        "name": "JPL Mission Operations Control",
+        "visual_description": "Subdued aerospace telemetry room"
+      },
+      {
+        "location_id": "LOC_002",
+        "name": "Interstellar Deep Space",
+        "visual_description": "Vast interstellar void"
+      }
+    ],
+    "prop_bible": [
+      {
+        "prop_id": "PROP_001",
+        "name": "Voyager High-Gain Antenna",
+        "visual_description": "Parabolic dish antenna"
+      }
+    ],
+    "scenes": [
+      {
+        "scene_id": "SCN_001",
+        "sequence": 1,
+        "duration_seconds": 5.0,
+        "visual_type": "cinematic",
+        "visual_purpose": "Hook and introduce anomaly",
+        "action": "A lone spacecraft drifts through the interstellar medium as mysterious telemetry pulses across its high-gain antenna",
+        "camera": { "shot_type": "wide", "movement": "slow_push_in" },
+        "lighting": "Dramatic cold starlight rim lighting",
+        "visual_prompt": "Voyager 1 probe drifting into deep interstellar void | Camera: wide shot | Lighting: Cold starlight",
+        "continuity": { "characters": [], "location": "LOC_002", "props": ["PROP_001"] }
+      },
+      {
+        "scene_id": "SCN_002",
+        "sequence": 2,
+        "duration_seconds": 6.0,
+        "visual_type": "talking_character",
+        "visual_purpose": "Flight engineer examines anomalous readouts",
+        "action": "Lead NASA Flight Engineer analyzes strange repetitive signal spikes on glowing diagnostic monitors",
+        "camera": { "shot_type": "medium", "movement": "tracking" },
+        "lighting": "Cyan CRT monitor glow on face",
+        "visual_prompt": "Lead NASA Flight Engineer analyzing fluctuating telemetry data | Camera: medium shot | Lighting: Cyan glow",
+        "continuity": { "characters": ["CHAR_001"], "location": "LOC_001", "props": [] }
+      }
+    ],
+    "continuity_state": { "timeline_continuous": true, "last_known_location": "LOC_001" },
+    "reference_requirements": { "total_requirements": 2, "manifest": [] },
+    "validation_report": { "valid": true, "status": "VALID", "blocking_errors_count": 0, "warnings_count": 0 },
+    "created_at": "2026-10-08T00:00:00.000Z",
+    "content_hash": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+  },
+  "media_manifest": {
+    "project_id": "test-prj-phase-6",
+    "storyboard_version": 1,
+    "generation_version": 1,
+    "mode": "mock",
+    "provider": "mock",
+    "model": "mock-video",
+    "status": "COMPLETED",
+    "total_scenes": 2,
+    "total_duration_seconds": 11.0,
+    "summary": { "total": 2, "completed": 2, "failed": 0, "reused": 0 },
+    "assets": [
+      {
+        "scene_id": "SCN_001",
+        "asset_id": "ASSET_SCN_001_v1_mock",
+        "file_path": "data/media/generated/test-prj-phase-6/SCN_001/v1/scene.mp4",
+        "file_hash": "mockhash1",
+        "duration_seconds": 5.0,
+        "width": 832,
+        "height": 480,
+        "fps": 16,
+        "status": "VALID"
+      },
+      {
+        "scene_id": "SCN_002",
+        "asset_id": "ASSET_SCN_002_v1_mock",
+        "file_path": "data/media/generated/test-prj-phase-6/SCN_002/v1/scene.mp4",
+        "file_hash": "mockhash2",
+        "duration_seconds": 6.0,
+        "width": 832,
+        "height": 480,
+        "fps": 16,
+        "status": "VALID"
+      }
+    ],
+    "created_at": "2026-10-08T00:00:00.000Z"
+  }
+}

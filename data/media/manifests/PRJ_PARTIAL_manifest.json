@@ -1,0 +1,70 @@
+{
+  "project_id": "PRJ_PARTIAL",
+  "storyboard_version": 1,
+  "generation_version": 1,
+  "provider": "mock",
+  "model": "mock-video",
+  "summary": {
+    "total_scenes": 2,
+    "completed": 2,
+    "failed": 0,
+    "pending": 0
+  },
+  "assets": [
+    {
+      "asset_id": "ASSET_SCN_001_v1_3dd023b9",
+      "project_id": "PRJ_PARTIAL",
+      "scene_id": "SCN_001",
+      "type": "video",
+      "provider": "mock",
+      "model": "mock-video",
+      "version": 1,
+      "file_path": "E:\\Personal Projects\\Loredotexe\\data\\media\\generated\\PRJ_PARTIAL\\SCN_001\\v1\\scene.mp4",
+      "file_hash": "c629d8053db1c1bd61f8fd2a0ef03c5ec6f5595cb40fcfbd0b8046468a539877",
+      "prompt_hash": "7e50f787dd6eb3063828c222351429e3bafc726346ba75fdc93ac006654041fe",
+      "generation_parameters": {
+        "width": 832,
+        "height": 480,
+        "fps": 16,
+        "duration_seconds": 5,
+        "prompt": "Voyager 1 probe drifting into deep interstellar void with glowing diagnostic telemetry | Camera: wide shot, slow push in | Lighting: Cold starlight rim lighting | Camera: wide, slow_push_in | Lighting: Dramatic cold starlight rim lighting | Style: The 10min Explosion Signature, color grading: Deep Space Navy, Electric Cyan, Warning Amber, High contrast, Volumetric cosmic rays",
+        "negative_prompt": "blurry, low quality, artifacts, cartoon, bad lighting"
+      },
+      "duration_seconds": 5,
+      "width": 832,
+      "height": 480,
+      "fps": 16,
+      "file_size_bytes": 544,
+      "created_at": "2026-10-07T19:19:55.534Z",
+      "status": "VALID"
+    },
+    {
+      "asset_id": "ASSET_SCN_002_v1_896335f7",
+      "project_id": "PRJ_PARTIAL",
+      "scene_id": "SCN_002",
+      "type": "video",
+      "provider": "mock",
+      "model": "mock-video",
+      "version": 1,
+      "file_path": "E:\\Personal Projects\\Loredotexe\\data\\media\\generated\\PRJ_PARTIAL\\SCN_002\\v1\\scene.mp4",
+      "file_hash": "1a7ecadfe3e72d30a8b41f94c77906b0baed57fe6f47ada39207f94d28a756b6",
+      "prompt_hash": "f6f47df4904160897935d05552ce6c1377c69535cd356d9b687f4d19c55235f4",
+      "generation_parameters": {
+        "width": 832,
+        "height": 480,
+        "fps": 16,
+        "duration_seconds": 6,
+        "prompt": "Lead NASA Flight Engineer analyzing fluctuating telemetry data on glowing computer monitors | Camera: medium shot, smooth tracking | Lighting: Cyan monitor glow | Camera: medium, tracking | Lighting: Cyan CRT monitor glow on face in dark mission control room | Style: The 10min Explosion Signature, color grading: Deep Space Navy, Electric Cyan, Warning Amber, High contrast, Volumetric cosmic rays",
+        "negative_prompt": "blurry, low quality, artifacts, distorted hands"
+      },
+      "duration_seconds": 6,
+      "width": 832,
+      "height": 480,
+      "fps": 16,
+      "file_size_bytes": 544,
+      "created_at": "2026-10-07T19:20:21.246Z",
+      "status": "VALID"
+    }
+  ],
+  "created_at": "2026-10-07T19:20:21.255Z"
+}

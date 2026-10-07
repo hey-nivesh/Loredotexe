@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0.0",
+  "project_id": "test-prj-phase-5",
+  "script_id": "test-script-p5",
+  "script_version": 1,
+  "storyboard_version": 1,
+  "topic": "The Voyager Interstellar Anomaly: Unexplained Telemetry",
+  "visual_style": {
+    "name": "The 10min Explosion Signature",
+    "aspect_ratio": "16:9",
+    "color_palette": ["Deep Space Navy", "Electric Cyan", "Warning Amber"],
+    "cinematic_aspects": ["High contrast", "Volumetric cosmic rays"]
+  },
+  "character_bible": [
+    {
+      "character_id": "CHAR_001",
+      "name": "Lead NASA Flight Engineer",
+      "visual_description": "Exhausted aerospace telemetry specialist with silver-streaked hair and wire-rimmed glasses",
+      "default_outfit": "Navy blue mission operations polo shirt with mission patch"
+    }
+  ],
+  "location_bible": [
+    {
+      "location_id": "LOC_001",
+      "name": "JPL Mission Operations Control",
+      "visual_description": "Subdued aerospace telemetry room filled with glowing diagnostic monitors and mission consoles",
+      "atmosphere": "Tense late-night investigative aura"
+    },
+    {
+      "location_id": "LOC_002",
+      "name": "Interstellar Deep Space",
+      "visual_description": "Vast interstellar void beyond the solar heliopause with distant star field",
+      "atmosphere": "Cold, silent, and mysterious cosmic expanse"
+    }
+  ],
+  "prop_bible": [
+    {
+      "prop_id": "PROP_001",
+      "name": "Voyager High-Gain Antenna",
+      "visual_description": "3.7-meter parabolic dish antenna reflecting faint starlight"
+    }
+  ],
+  "world_bible": {
+    "era": "Modern Space Era",
+    "physics_rules": "Strict real-world aerospace physics and genuine interstellar conditions"
+  },
+  "scenes": [
+    {
+      "scene_id": "SCN_001",
+      "sequence": 1,
+      "duration_seconds": 5.0,
+      "visual_type": "cinematic",
+      "visual_purpose": "Hook and introduce anomaly",
+      "action": "A lone spacecraft drifts through the interstellar medium as mysterious telemetry pulses across its high-gain antenna",
+      "camera": {
+        "shot_type": "wide",
+        "movement": "slow_push_in"
+      },
+      "lighting": "Dramatic cold starlight rim lighting",
+      "visual_prompt": "Voyager 1 probe drifting into deep interstellar void with glowing diagnostic telemetry | Camera: wide shot, slow push in | Lighting: Cold starlight rim lighting",
+      "negative_prompt": "blurry, low quality, artifacts, cartoon, bad lighting",
+      "continuity": {
+        "characters": [],
+        "location": "LOC_002",
+        "props": ["PROP_001"]
+      }
+    },
+    {
+      "scene_id": "SCN_002",
+      "sequence": 2,
+      "duration_seconds": 6.0,
+      "visual_type": "talking_character",
+      "visual_purpose": "Flight engineer examines anomalous readouts",
+      "action": "Lead NASA Flight Engineer leans into computer console, analyzing strange repetitive signal spikes",
+      "camera": {
+        "shot_type": "medium",
+        "movement": "tracking"
+      },
+      "lighting": "Cyan CRT monitor glow on face in dark mission control room",
+      "visual_prompt": "Lead NASA Flight Engineer analyzing fluctuating telemetry data on glowing computer monitors | Camera: medium shot, smooth tracking | Lighting: Cyan monitor glow",
+      "negative_prompt": "blurry, low quality, artifacts, distorted hands",
+      "continuity": {
+        "characters": ["CHAR_001"],
+        "location": "LOC_001",
+        "props": []
+      }
+    }
+  ],
+  "continuity_state": {
+    "timeline_continuous": true,
+    "last_known_location": "LOC_001"
+  },
+  "reference_requirements": {
+    "total_requirements": 2,
+    "manifest": [
+      {
+        "asset_id": "REF_CHAR_001",
+        "entity_type": "character",
+        "entity_id": "CHAR_001",
+        "prompt_guide": "Lead NASA Flight Engineer in navy polo"
+      },
+      {
+        "asset_id": "REF_LOC_001",
+        "entity_type": "location",
+        "entity_id": "LOC_001",
+        "prompt_guide": "JPL Mission Operations Control room"
+      }
+    ]
+  },
+  "validation_report": {
+    "valid": true,
+    "status": "VALID",
+    "blocking_errors_count": 0,
+    "warnings_count": 0
+  },
+  "created_at": "2026-10-08T00:00:00.000Z",
+  "content_hash": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+}

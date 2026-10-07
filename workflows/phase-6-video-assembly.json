@@ -1,0 +1,162 @@
+{
+  "name": "Phase 6 - Voice, Subtitles & Final Video Assembly",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "phase-6-assembly",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "node-p6-webhook",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:3000/api/assembly/ffmpeg",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-p6-detect-ffmpeg",
+      "name": "Detect FFmpeg & FFprobe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3000/api/assembly/dry-run",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ $json }}",
+        "options": {}
+      },
+      "id": "node-p6-dry-run",
+      "name": "Execute Assembly Dry-Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.dry_run_passed }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-p6-check-dry-run",
+      "name": "Dry Run Passed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3000/api/assembly/assemble",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ $('Execute Assembly Dry-Run').item.json }}",
+        "options": {}
+      },
+      "id": "node-p6-assemble",
+      "name": "Execute Final Video Assembly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3000/api/assembly/validate",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ { videoPath: $json.final_video.path, audioPath: $json.audio.path, subtitlePath: $json.subtitles.srt_path, expectedDurationSeconds: $json.final_video.duration_seconds } }}",
+        "options": {}
+      },
+      "id": "node-p6-validate",
+      "name": "Validate Final Deliverable",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 200]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Detect FFmpeg & FFprobe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect FFmpeg & FFprobe": {
+      "main": [
+        [
+          {
+            "node": "Execute Assembly Dry-Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Assembly Dry-Run": {
+      "main": [
+        [
+          {
+            "node": "Dry Run Passed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dry Run Passed?": {
+      "main": [
+        [
+          {
+            "node": "Execute Final Video Assembly",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Execute Final Video Assembly": {
+      "main": [
+        [
+          {
+            "node": "Validate Final Deliverable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

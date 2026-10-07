@@ -1,0 +1,15 @@
+{
+  "project_id": "c471930a-20e9-4120-a74c-577831dbba1b",
+  "storyboard_version": 1,
+  "generation_version": 1,
+  "provider": "mock",
+  "model": "mock-video",
+  "summary": {
+    "total_scenes": 2,
+    "completed": 0,
+    "failed": 2,
+    "pending": 0
+  },
+  "assets": [],
+  "created_at": "2026-10-07T19:07:46.906Z"
+}

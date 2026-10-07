@@ -1,0 +1,461 @@
+{
+  "name": "Loredotexe — End-to-End Production Pipeline (Phase 1, 2 & 3)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "When clicking ‘Execute Workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Candidate Topic Input with dynamic execution timestamp\nconst timestamp = Date.now();\nreturn {\n  title: 'The Voyager Interstellar Anomaly: Unexplained Telemetry',\n  topic: 'Voyager 1 thruster and telemetry anomalies in interstellar space',\n  category: 'science',\n  channelName: 'The 10min Explosion',\n  idempotencyKey: 'voyager-run-' + timestamp,\n  summary: 'NASA engineers investigated unexpected telemetry data from Voyager 1 instruments outside the heliosphere.',\n  source_url: 'https://phys.org/news/2024-voyager-space-telemetry.html',\n  keywords: ['voyager', 'nasa', 'interstellar', 'space', 'telemetry', 'propulsion']\n};"
+      },
+      "id": "2",
+      "name": "Candidate Topic Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\nif (!input.title || typeof input.title !== 'string' || input.title.trim().length < 3) {\n  throw new Error('Validation Error: Candidate title is required and must be at least 3 characters.');\n}\n\nif (!input.topic || typeof input.topic !== 'string' || input.topic.trim().length < 2) {\n  throw new Error('Validation Error: Candidate topic is required.');\n}\n\nreturn {\n  title: input.title.trim(),\n  topic: input.topic.trim(),\n  category: input.category || 'general',\n  channelName: input.channelName || 'The 10min Explosion',\n  idempotencyKey: input.idempotencyKey || null,\n  metadata: {\n    summary: input.summary || '',\n    source_url: input.source_url || null,\n    keywords: input.keywords || [],\n    category: input.category || 'general'\n  }\n};"
+      },
+      "id": "3",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3000/api/projects",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "4",
+      "name": "Create or Retrieve Project",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $json.project.id }}/transition",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetStatus\": \"PLANNING\",\n  \"expectedVersion\": {{ $json.project.version }}\n}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "5",
+      "name": "Transition to PLANNING",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3000/api/research/pipeline",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"projectId\": \"{{ $json.project.id }}\",\n  \"candidate\": {\n    \"title\": \"{{ $json.project.title }}\",\n    \"topic\": \"{{ $json.project.topic }}\",\n    \"category\": \"science\",\n    \"summary\": \"NASA investigated unexpected interstellar telemetry from Voyager 1.\",\n    \"source_url\": \"https://phys.org/news/2024-voyager-space-telemetry.html\"\n  },\n  \"prefetchedDocs\": [\n    {\n      \"sourceId\": \"src-nasa-01\",\n      \"sourceUrl\": \"https://www.nasa.gov/mission_pages/voyager/telemetry-update.html\",\n      \"publisher\": \"NASA\",\n      \"publishedAt\": \"2024-05-15T12:00:00Z\",\n      \"plainText\": \"NASA engineers successfully resolved a telemetry communication issue with Voyager 1 in May 2024. The spacecraft launched in 1977 and is currently located over 15 billion miles from Earth in interstellar space. Engineers transmitted commands to a backup memory chip after corrupted code halted scientific readouts. All four active instruments are now returning usable science data.\",\n      \"paragraphs\": [\n        \"NASA engineers successfully resolved a telemetry communication issue with Voyager 1 in May 2024.\",\n        \"The spacecraft launched in 1977 and is currently located over 15 billion miles from Earth in interstellar space.\",\n        \"Engineers transmitted commands to a backup memory chip after corrupted code halted scientific readouts.\",\n        \"All four active instruments are now returning usable science data.\"\n      ]\n    },\n    {\n      \"sourceId\": \"src-physorg-01\",\n      \"sourceUrl\": \"https://phys.org/news/2024-05-voyager-1-telemetry-fix.html\",\n      \"publisher\": \"Phys.org\",\n      \"publishedAt\": \"2024-05-16T08:30:00Z\",\n      \"plainText\": \"Voyager 1 has resumed transmitting usable science data from all four instruments following a five-month memory malfunction in 2024. NASA confirmed the interstellar probe is operating normally.\",\n      \"paragraphs\": [\n        \"Voyager 1 has resumed transmitting usable science data from all four instruments following a five-month memory malfunction in 2024.\",\n        \"NASA confirmed the interstellar probe is operating normally.\"\n      ]\n    }\n  ]\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "6",
+      "name": "Execute Research Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $json.savedRecord.projectId }}/transition",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetStatus\": \"PLANNED\",\n  \"metadata\": {\n    \"dossierScore\": {{ $json.topicScore.overall_score }},\n    \"eligibilityStatus\": \"{{ $json.eligibilityStatus }}\"\n  }\n}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "7",
+      "name": "Transition to PLANNED",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $json.project.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "8",
+      "name": "Verify Current Project State",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract data from previous nodes in the execution trace\nconst project = $input.first().json.project;\nconst researchData = $('Execute Research Pipeline').first().json;\nconst dossier = researchData.dossier || {};\nconst topicScore = researchData.topicScore || {};\n\nreturn {\n  success: true,\n  project: {\n    id: project.id,\n    title: project.title,\n    topic: project.topic,\n    channelName: project.channelName,\n    status: project.status,\n    version: project.version,\n    startedAt: project.startedAt,\n    metadata: project.metadata\n  },\n  research: {\n    overallScore: topicScore.overall_score,\n    eligibility: researchData.eligibilityStatus,\n    verifiedFactsCount: dossier.verified_facts?.length || 0,\n    disputedClaimsCount: dossier.disputed_claims?.length || 0,\n    timelineEventsCount: dossier.timeline?.length || 0,\n    sourcesAnalyzed: researchData.sourceDocumentsCount || 0,\n    suggestedExplainerAngles: dossier.suggested_explainer_angles || []\n  },\n  dossierSummary: {\n    coreEntity: dossier.core_entity,\n    coreNarrative: dossier.core_narrative,\n    keyThemes: dossier.key_themes\n  },\n  dossier: dossier\n};"
+      },
+      "id": "9",
+      "name": "Format Final Output & Research Dossier...",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Seamlessly extract project and verified research dossier from Phase 2\nconst researchNode = $('Execute Research Pipeline').first().json;\nconst project = $('Verify Current Project State').first().json.project;\nconst dossier = researchNode.dossier;\n\nif (!dossier || typeof dossier !== 'object') {\n  throw new Error('Validation Error: Phase 2 research dossier is missing.');\n}\n\nif (dossier.eligibility_status !== 'READY_FOR_REVIEW') {\n  throw new Error(`Eligibility Error: Dossier status is '${dossier.eligibility_status}'. Topic must be READY_FOR_REVIEW to generate script.`);\n}\n\nreturn {\n  projectId: project.id,\n  topic: project.topic,\n  category: researchNode.category || 'science',\n  dossier: dossier\n};"
+      },
+      "id": "10",
+      "name": "Validate Dossier Eligibility",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $json.projectId }}/transition",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetStatus\": \"GENERATING\"\n}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "11",
+      "name": "Transition to GENERATING",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3000/api/scriptwriting/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"projectId\": \"{{ $('Validate Dossier Eligibility').first().json.projectId }}\",\n  \"dossier\": {{ JSON.stringify($('Validate Dossier Eligibility').first().json.dossier) }},\n  \"scriptVersion\": 1,\n  \"maxRevisions\": 2\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "12",
+      "name": "Execute Scriptwriting Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:3000/api/projects/{{ $json.script.project_id }}/transition",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"targetStatus\": \"REVIEW_READY\",\n  \"metadata\": {\n    \"scriptId\": \"{{ $json.script.id }}\",\n    \"spokenWordCount\": {{ $json.script.spoken_word_count }},\n    \"estimatedDurationSeconds\": {{ $json.script.estimated_duration_seconds }},\n    \"qaScore\": {{ $json.script.qa_report.score }},\n    \"approvalStatus\": \"{{ $json.script.approval_status }}\"\n  }\n}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "13",
+      "name": "Transition to REVIEW_READY",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const scriptData = $('Execute Scriptwriting Pipeline').first().json.script;\nconst qa = scriptData.qa_report || {};\n\nreturn {\n  success: true,\n  projectId: scriptData.project_id,\n  scriptId: scriptData.id,\n  topic: scriptData.topic,\n  version: scriptData.script_version,\n  approvalStatus: scriptData.approval_status,\n  qaScore: qa.score,\n  spokenWordCount: scriptData.spoken_word_count,\n  estimatedDurationSeconds: scriptData.estimated_duration_seconds,\n  titleOptions: scriptData.title_options,\n  chaptersCount: scriptData.chapters.length,\n  humorAnnotationsCount: scriptData.humor_annotations.length,\n  memeSuggestionsCount: scriptData.meme_suggestions.length,\n  visualSuggestionsCount: scriptData.visual_suggestions.length,\n  contentHash: scriptData.content_hash,\n  message: 'Phase 1, 2, and 3 executed end-to-end successfully! Narration script is generated, humor-adapted, QA-validated, and ready for human editorial review & Phase 4.'\n};"
+      },
+      "id": "14",
+      "name": "Format Script Package Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        560
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute Workflow’": {
+      "main": [
+        [
+          {
+            "node": "Candidate Topic Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Topic Input": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Create or Retrieve Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or Retrieve Project": {
+      "main": [
+        [
+          {
+            "node": "Transition to PLANNING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transition to PLANNING": {
+      "main": [
+        [
+          {
+            "node": "Execute Research Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Research Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Transition to PLANNED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transition to PLANNED": {
+      "main": [
+        [
+          {
+            "node": "Verify Current Project State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Current Project State": {
+      "main": [
+        [
+          {
+            "node": "Format Final Output & Research Dossier...",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Final Output & Research Dossier...": {
+      "main": [
+        [
+          {
+            "node": "Validate Dossier Eligibility",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Dossier Eligibility": {
+      "main": [
+        [
+          {
+            "node": "Transition to GENERATING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transition to GENERATING": {
+      "main": [
+        [
+          {
+            "node": "Execute Scriptwriting Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Scriptwriting Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Transition to REVIEW_READY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transition to REVIEW_READY": {
+      "main": [
+        [
+          {
+            "node": "Format Script Package Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "loredotexe-pipeline-v3"
+}
