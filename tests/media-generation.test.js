@@ -8,7 +8,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { createDatabaseConnection, runMigrations } from '../src/db/connection.js';
+import { FFmpegDetector } from '../src/assembly/ffmpeg/ffmpeg-detector.js';
 import {
   MediaService,
   HardwareDetector,
@@ -319,7 +321,7 @@ describe('Phase 5 — Media Generation Engine Test Suite', () => {
   });
 
   // 14. Media Validation
-  test('14. MediaValidator verifies valid file and catches corrupt/missing files', () => {
+  test('14. MediaValidator verifies valid file and catches corrupt/missing files', async () => {
     const validator = new MediaValidator();
     const adapter = new MockVideoModelAdapter();
 
@@ -327,23 +329,30 @@ describe('Phase 5 — Media Generation Engine Test Suite', () => {
     if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
     const validFile = path.join(outputDir, 'scene.mp4');
 
-    const bin = adapter._generateDeterministicMockMp4({
-      sceneId: 'SCN_001',
-      duration: 5.0,
+    await adapter.generateScene({
+      scene_id: 'SCN_001',
+      duration_seconds: 5.0,
       width: 832,
       height: 480,
       prompt: 'Val test'
-    });
-    fs.writeFileSync(validFile, bin);
+    }, { outputPath: validFile });
 
     const validation = validator.validateMedia(validFile, { duration_seconds: 5.0 });
     assert.strictEqual(validation.valid, true);
     assert.ok(validation.fileHash);
+    assert.strictEqual(validation.duration, 5.0);
+    assert.strictEqual(validation.width, 832);
+    assert.strictEqual(validation.height, 480);
 
-    // Corrupted file test
+    // Corrupted file test (invalid header)
     const corruptFile = path.join(outputDir, 'corrupt.mp4');
-    fs.writeFileSync(corruptFile, Buffer.from('NOT_AN_MP4_HEADER'));
+    fs.writeFileSync(corruptFile, Buffer.from('NOT_AN_MP4_HEADER_TEST'));
     assert.throws(() => validator.validateMedia(corruptFile, { duration_seconds: 5.0 }), MediaValidationError);
+
+    // Corrupted file test (missing moov atom)
+    const fakeMoovMissingFile = path.join(outputDir, 'missing_moov.mp4');
+    fs.writeFileSync(fakeMoovMissingFile, Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32, 0x00, 0x00, 0x00, 0x00, 0x69, 0x73, 0x6f, 0x6d, 0x6d, 0x70, 0x34, 0x32, 0x00, 0x00, 0x01, 0x00, 0x6d, 0x64, 0x61, 0x74]));
+    assert.throws(() => validator.validateMedia(fakeMoovMissingFile, { duration_seconds: 5.0 }), MediaValidationError);
   });
 
   // 15. SHA-256 Hashing
@@ -527,4 +536,60 @@ describe('Phase 5 — Media Generation Engine Test Suite', () => {
     assert.ok(master.connections['Detect Hardware Capabilities']);
     assert.ok(master.connections['Execute Media Generation Engine']);
   });
+
+  // 23. Playable MP4 Deep FFprobe & FFmpeg Regression Test
+  test('23. MockVideoModelAdapter produces playable MP4 that passes FFprobe and FFmpeg decode test with exit code 0', async () => {
+    const adapter = new MockVideoModelAdapter();
+    const detector = new FFmpegDetector();
+    const ffprobeBin = detector.getFFprobePath();
+    const ffmpegBin = detector.getFFmpegPath();
+
+    const outputDir = path.join(testOutputDir, 'regression_scene_test');
+    const scenePath = path.join(outputDir, 'scene.mp4');
+
+    const result = await adapter.generateScene({
+      scene_id: 'REG_SCN_01',
+      prompt: 'Deep space anomaly with high contrast cosmic dust',
+      width: 832,
+      height: 480,
+      fps: 24,
+      duration_seconds: 3.0
+    }, { outputPath: scenePath });
+
+    assert.ok(fs.existsSync(result.output_path));
+    assert.strictEqual(result.output_path, scenePath.replace(/\\/g, '/'));
+
+    // 1. Run ffprobe inspection
+    const probeRes = spawnSync(ffprobeBin, [
+      '-v', 'error',
+      '-show_entries', 'format=format_name,duration:stream=codec_type,codec_name,width,height,r_frame_rate',
+      '-of', 'json',
+      scenePath
+    ], { encoding: 'utf8' });
+
+    assert.strictEqual(probeRes.status, 0, `ffprobe failed: ${probeRes.stderr}`);
+    const probeData = JSON.parse(probeRes.stdout);
+
+    assert.ok(probeData.format.format_name.includes('mp4') || probeData.format.format_name.includes('mov'));
+    const duration = parseFloat(probeData.format.duration);
+    assert.ok(duration >= 2.8 && duration <= 3.2, `Expected duration ~3.0s, got ${duration}s`);
+
+    const videoStream = probeData.streams.find((s) => s.codec_type === 'video');
+    assert.ok(videoStream, 'Missing video stream in mock MP4');
+    assert.strictEqual(videoStream.codec_name, 'h264');
+    assert.strictEqual(videoStream.width, 832);
+    assert.strictEqual(videoStream.height, 480);
+
+    // 2. Run ffmpeg decode test
+    const decodeRes = spawnSync(ffmpegBin, [
+      '-v', 'error',
+      '-i', scenePath,
+      '-f', 'null',
+      '-'
+    ], { encoding: 'utf8' });
+
+    assert.strictEqual(decodeRes.status, 0, `ffmpeg decode failed: ${decodeRes.stderr}`);
+    assert.strictEqual(decodeRes.stderr.trim(), '', 'Expected zero decode errors in ffmpeg output');
+  });
 });
+

@@ -6,9 +6,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { MediaValidationError, MEDIA_ERROR_CODES } from '../errors/media-errors.js';
 import { DEFAULT_MEDIA_CONFIG } from '../config/media-config.js';
+import { FFmpegDetector } from '../../assembly/ffmpeg/ffmpeg-detector.js';
 
 export class MediaValidator {
   /**
@@ -16,8 +17,8 @@ export class MediaValidator {
    */
   constructor(options = {}) {
     this.durationToleranceSeconds = options.durationToleranceSeconds || DEFAULT_MEDIA_CONFIG.durationToleranceSeconds;
-    this.minFileSizeBytes = options.minFileSizeBytes || 128;
-    this.ffprobeAvailable = this._checkFfprobe();
+    this.minFileSizeBytes = options.minFileSizeBytes || 512;
+    this.detector = new FFmpegDetector(options);
   }
 
   /**
@@ -73,13 +74,10 @@ export class MediaValidator {
       throw new MediaValidationError('File header does not match a valid MP4 container.', MEDIA_ERROR_CODES.OUTPUT_CORRUPTED, { filePath });
     }
 
-    // 5. Compute SHA-256 hash
-    const fileHash = createHash('sha256').update(buffer).digest('hex');
+    // 5. Deep probe container, streams, and duration via ffprobe
+    const probe = this._probeMediaWithFfprobe(filePath, expectedSpec);
 
-    // 6. Deep probe duration/resolution via ffprobe if available, or fallback
-    const probe = this._probeMedia(filePath, buffer, expectedSpec);
-
-    // 7. Duration bounds validation with tolerance
+    // 6. Duration bounds validation with tolerance
     if (expectedSpec.duration_seconds && typeof expectedSpec.duration_seconds === 'number') {
       const expectedDuration = expectedSpec.duration_seconds;
       const actualDuration = probe.duration;
@@ -94,6 +92,9 @@ export class MediaValidator {
       }
     }
 
+    // 7. Compute SHA-256 hash
+    const fileHash = createHash('sha256').update(buffer).digest('hex');
+
     return {
       valid: true,
       fileHash,
@@ -104,64 +105,91 @@ export class MediaValidator {
       width: probe.width,
       height: probe.height,
       fps: probe.fps,
-      probedWithFfprobe: this.ffprobeAvailable
+      probedWithFfprobe: probe.probedWithFfprobe
     };
   }
 
   /**
-   * Probes duration and resolution from media.
+   * Deeply inspects media container and video streams using ffprobe & ffmpeg decode test.
    * @private
    */
-  _probeMedia(filePath, buffer, expectedSpec) {
-    if (this.ffprobeAvailable) {
-      try {
-        const out = execSync(
-          `ffprobe -v error -show_entries format=duration:stream=width,height,r_frame_rate -of json "${filePath}"`,
-          { timeout: 3000, encoding: 'utf8' }
-        );
-        const data = JSON.parse(out);
-        const duration = parseFloat(data.format?.duration) || expectedSpec.duration_seconds || 5.0;
-        const videoStream = (data.streams || []).find((s) => s.width && s.height);
-        const width = videoStream?.width || expectedSpec.width || 832;
-        const height = videoStream?.height || expectedSpec.height || 480;
-        return { duration, width, height, fps: 16 };
-      } catch (_) {}
+  _probeMediaWithFfprobe(filePath, expectedSpec) {
+    const ffprobeBin = this.detector.getFFprobePath();
+    const ffmpegBin = this.detector.getFFmpegPath();
+
+    // 1. Run ffprobe
+    const probeRes = spawnSync(ffprobeBin, [
+      '-v', 'error',
+      '-show_entries', 'format=duration,format_name:stream=codec_type,codec_name,width,height,r_frame_rate',
+      '-of', 'json',
+      filePath
+    ], { encoding: 'utf8', timeout: 5000, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    if (probeRes.error || probeRes.status !== 0 || !probeRes.stdout) {
+      const errOutput = probeRes.stderr || probeRes.error?.message || 'moov atom not found or unreadable MP4';
+      throw new MediaValidationError(
+        `ffprobe validation failed: ${errOutput}`,
+        MEDIA_ERROR_CODES.OUTPUT_CORRUPTED,
+        { filePath, stderr: errOutput }
+      );
     }
 
-    // Fallback parser for mock or standard container
+    let data;
     try {
-      // If mock container payload is embedded in mdat
-      const mdatIndex = buffer.indexOf(Buffer.from('mdat'));
-      if (mdatIndex !== -1) {
-        const payloadStr = buffer.toString('utf8', mdatIndex + 4);
-        const parsed = JSON.parse(payloadStr);
-        return {
-          duration: parsed.duration || expectedSpec.duration_seconds || 5.0,
-          width: parsed.width || expectedSpec.width || 832,
-          height: parsed.height || expectedSpec.height || 480,
-          fps: 16
-        };
-      }
-    } catch (_) {}
+      data = JSON.parse(probeRes.stdout);
+    } catch (_) {
+      throw new MediaValidationError('ffprobe returned malformed JSON output.', MEDIA_ERROR_CODES.OUTPUT_CORRUPTED, { filePath });
+    }
+
+    const streams = data.streams || [];
+    const videoStream = streams.find((s) => s.codec_type === 'video');
+
+    if (!videoStream) {
+      throw new MediaValidationError('Media file does not contain a valid video stream.', MEDIA_ERROR_CODES.OUTPUT_INVALID, { filePath });
+    }
+
+    const width = videoStream.width || 0;
+    const height = videoStream.height || 0;
+    if (width <= 0 || height <= 0) {
+      throw new MediaValidationError('Video stream has invalid resolution dimensions.', MEDIA_ERROR_CODES.OUTPUT_INVALID, { filePath, width, height });
+    }
+
+    const duration = parseFloat(data.format?.duration || '0');
+    if (duration <= 0) {
+      throw new MediaValidationError('Media file has zero or invalid duration.', MEDIA_ERROR_CODES.OUTPUT_INVALID, { filePath, duration });
+    }
+
+    // 2. Run ffmpeg container decode test
+    const decodeRes = spawnSync(ffmpegBin, [
+      '-v', 'error',
+      '-i', filePath,
+      '-f', 'null',
+      '-'
+    ], { encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    if (decodeRes.status !== 0 || (decodeRes.stderr && decodeRes.stderr.includes('moov atom not found'))) {
+      throw new MediaValidationError(
+        `FFmpeg decode test failed: ${decodeRes.stderr || 'Corrupt media container'}`,
+        MEDIA_ERROR_CODES.OUTPUT_CORRUPTED,
+        { filePath, stderr: decodeRes.stderr }
+      );
+    }
 
     return {
-      duration: expectedSpec.duration_seconds || 5.0,
-      width: expectedSpec.width || 832,
-      height: expectedSpec.height || 480,
-      fps: expectedSpec.fps || 16
+      duration,
+      width,
+      height,
+      fps: videoStream.r_frame_rate ? this._evalFps(videoStream.r_frame_rate) : 24,
+      probedWithFfprobe: true
     };
   }
 
-  /**
-   * Checks if ffprobe is available in system PATH.
-   * @private
-   */
-  _checkFfprobe() {
-    try {
-      execSync('ffprobe -version', { timeout: 2000, stdio: ['ignore', 'ignore', 'ignore'] });
-      return true;
-    } catch (_) {
-      return false;
+  _evalFps(rateStr) {
+    if (!rateStr || typeof rateStr !== 'string') return 24;
+    const parts = rateStr.split('/');
+    if (parts.length === 2 && parseFloat(parts[1]) > 0) {
+      return Math.round(parseFloat(parts[0]) / parseFloat(parts[1]));
     }
+    return parseFloat(rateStr) || 24;
   }
 }

@@ -200,7 +200,7 @@ export class MediaService {
     if (!fs.existsSync(manifestDir)) {
       fs.mkdirSync(manifestDir, { recursive: true });
     }
-    const manifestPath = path.join(manifestDir, `${resolvedProjectId}_manifest.json`);
+    const manifestPath = path.join(manifestDir, `${resolvedProjectId}_manifest.json`).replace(/\\/g, '/');
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
 
     logger.info('Phase 5 Media Generation pipeline finished', {

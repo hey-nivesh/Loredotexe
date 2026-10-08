@@ -1,17 +1,20 @@
 /**
  * Deterministic Mock Video Model Adapter for Phase 5.
- * Generates lightweight, valid placeholder media assets for testing and CI without GPU/model requirements.
+ * Generates lightweight, genuinely valid H.264/MP4 media assets via FFmpeg for testing, CI, and local workflows.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { VideoModelAdapter } from './video-model-adapter.js';
+import { FFmpegDetector } from '../../assembly/ffmpeg/ffmpeg-detector.js';
 
 export class MockVideoModelAdapter extends VideoModelAdapter {
   constructor(config = {}) {
     super();
     this.config = config;
+    this.detector = new FFmpegDetector(config);
   }
 
   getProviderName() {
@@ -48,12 +51,12 @@ export class MockVideoModelAdapter extends VideoModelAdapter {
     return {
       estimatedVramGb: 0,
       estimatedRamGb: 0.1,
-      estimatedSeconds: Math.round(duration * 0.01 * 100) / 100
+      estimatedSeconds: Math.round(duration * 0.05 * 100) / 100
     };
   }
 
   /**
-   * Generates a deterministic mock video asset.
+   * Generates a deterministic, genuinely valid mock video asset using FFmpeg.
    * @param {object} generationRequest
    * @param {object} [options={}]
    * @returns {Promise<object>}
@@ -63,7 +66,7 @@ export class MockVideoModelAdapter extends VideoModelAdapter {
     const duration = generationRequest.duration_seconds || 5.0;
     const width = generationRequest.width || 832;
     const height = generationRequest.height || 480;
-    const fps = generationRequest.fps || 16;
+    const fps = generationRequest.fps || 24;
     const projectId = options.projectId || 'PRJ_MOCK';
     const version = options.version || 1;
 
@@ -76,24 +79,31 @@ export class MockVideoModelAdapter extends VideoModelAdapter {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const videoPath = options.outputPath || path.join(outputDir, 'scene.mp4');
-    const metadataPath = path.join(outputDir, 'metadata.json');
+    const videoPath = (options.outputPath || path.join(outputDir, 'scene.mp4')).replace(/\\/g, '/');
+    const metadataPath = path.join(path.dirname(videoPath), 'metadata.json').replace(/\\/g, '/');
 
-    // Create a deterministic valid mock media binary (ftyp mp4 container header + payload)
-    const mockBinary = this._generateDeterministicMockMp4({
+    if (!fs.existsSync(path.dirname(videoPath))) {
+      fs.mkdirSync(path.dirname(videoPath), { recursive: true });
+    }
+
+    // Generate genuinely valid MP4 via FFmpeg
+    this._generateValidMockMp4WithFfmpeg({
+      videoPath,
       sceneId,
       duration,
       width,
       height,
-      prompt: generationRequest.prompt
+      fps
     });
 
-    fs.writeFileSync(videoPath, mockBinary);
+    if (!fs.existsSync(videoPath) || fs.statSync(videoPath).size === 0) {
+      throw new Error(`Failed to generate valid MP4 at '${videoPath}'.`);
+    }
 
-    // Compute SHA-256 hash
-    const fileHash = createHash('sha256').update(mockBinary).digest('hex');
+    const fileBuf = fs.readFileSync(videoPath);
+    const fileHash = createHash('sha256').update(fileBuf).digest('hex');
     const promptHash = createHash('sha256')
-      .update(generationRequest.prompt + (generationRequest.negative_prompt || ''))
+      .update((generationRequest.prompt || '') + (generationRequest.negative_prompt || ''))
       .digest('hex');
 
     const assetId = options.assetId || `ASSET_${sceneId}_v${version}_${randomUUID().slice(0, 8)}`;
@@ -122,7 +132,7 @@ export class MockVideoModelAdapter extends VideoModelAdapter {
       width,
       height,
       fps,
-      file_size_bytes: mockBinary.length,
+      file_size_bytes: fileBuf.length,
       created_at: now,
       status: 'VALID'
     };
@@ -141,45 +151,51 @@ export class MockVideoModelAdapter extends VideoModelAdapter {
       height,
       fps,
       file_hash: fileHash,
-      file_size_bytes: mockBinary.length,
+      file_size_bytes: fileBuf.length,
       metadata
     };
   }
 
   /**
-   * Generates a minimal valid MP4 binary buffer.
+   * Generates a genuinely valid MP4 with H.264 video, silent audio, valid moov atom, and faststart.
    * @private
    */
-  _generateDeterministicMockMp4({ sceneId, duration, width, height, prompt }) {
-    // Minimal standard ISO base media file (MP4 ftyp + moov/mdat box structure)
-    const header = Buffer.from([
-      // ftyp box (24 bytes)
-      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, // size 24, 'ftyp'
-      0x6d, 0x70, 0x34, 0x32, 0x00, 0x00, 0x00, 0x00, // 'mp42', minor version 0
-      0x69, 0x73, 0x6f, 0x6d, 0x6d, 0x70, 0x34, 0x32  // compatible brands: 'isom', 'mp42'
-    ]);
+  _generateValidMockMp4WithFfmpeg({ videoPath, sceneId, duration, width, height, fps }) {
+    const ffmpegBin = this.detector.getFFmpegPath();
 
-    // mdat payload containing encoded scene metadata + standard padding
-    const payloadStr = JSON.stringify({
-      generator: 'Loredotexe MockVideoAdapter v1.0',
-      sceneId,
-      duration,
-      width,
-      height,
-      promptHash: createHash('sha256').update(prompt || '').digest('hex'),
-      timestamp: Date.now()
+    // Width and height must be divisible by 2 for libx264 yuv420p
+    const validWidth = width % 2 === 0 ? width : width + 1;
+    const validHeight = height % 2 === 0 ? height : height + 1;
+    const validFps = Math.max(1, fps || 24);
+    const validDuration = Math.max(0.5, duration || 5.0);
+
+    const args = [
+      '-y',
+      '-f', 'lavfi',
+      '-i', `color=c=0x181824:s=${validWidth}x${validHeight}:r=${validFps}:d=${validDuration}`,
+      '-f', 'lavfi',
+      '-i', `anullsrc=r=44100:cl=stereo:d=${validDuration}`,
+      '-c:v', 'libx264',
+      '-tune', 'stillimage',
+      '-preset', 'ultrafast',
+      '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-shortest',
+      '-movflags', '+faststart',
+      videoPath
+    ];
+
+    const result = spawnSync(ffmpegBin, args, {
+      encoding: 'utf8',
+      timeout: 30000,
+      stdio: ['ignore', 'pipe', 'pipe']
     });
-    const payloadBuf = Buffer.from(payloadStr, 'utf8');
-    const paddingBuf = Buffer.alloc(Math.max(0, 512 - payloadBuf.length), 0x00);
-    const combinedPayload = Buffer.concat([payloadBuf, paddingBuf]);
 
-    // mdat box header (8 bytes)
-    const mdatSize = combinedPayload.length + 8;
-    const mdatBox = Buffer.alloc(mdatSize);
-    mdatBox.writeUInt32BE(mdatSize, 0);
-    mdatBox.write('mdat', 4, 4, 'ascii');
-    combinedPayload.copy(mdatBox, 8);
-
-    return Buffer.concat([header, mdatBox]);
+    if (result.error || result.status !== 0 || !fs.existsSync(videoPath)) {
+      throw new Error(
+        `FFmpeg mock video generation failed: ${result.stderr || result.error?.message || 'Unknown error'}`
+      );
+    }
   }
 }

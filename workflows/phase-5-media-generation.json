@@ -145,7 +145,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"targetStatus\": \"MEDIA_READY\",\n  \"metadata\": {\n    \"manifestPath\": \"{{ $json.manifest_path }}\",\n    \"completedCount\": {{ $json.completed_assets_count }}\n  }\n}",
+        "jsonBody": "={\n  \"targetStatus\": \"MEDIA_READY\",\n  \"metadata\": {\n    \"manifestPath\": {{ JSON.stringify($json.manifest_path || '') }},\n    \"completedCount\": {{ $json.completed_assets_count || 0 }}\n  }\n}",
         "options": {
           "timeout": 5000
         }

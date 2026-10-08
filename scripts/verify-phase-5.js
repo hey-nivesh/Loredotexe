@@ -150,20 +150,21 @@ async function main() {
   });
 
   // 8. Media Validator
-  await runCheck('MediaValidator validates file headers, duration bounds, and SHA-256 integrity', () => {
+  await runCheck('MediaValidator validates file headers, duration bounds, and SHA-256 integrity', async () => {
     const validator = new MediaValidator();
     const adapter = new MockVideoModelAdapter();
-    const bin = adapter._generateDeterministicMockMp4({
-      sceneId: 'SCN_001',
-      duration: 5.0,
-      width: 832,
-      height: 480,
-      prompt: 'Test prompt'
-    });
     const tmpDir = resolve(__dirname, '../data/media/temp');
     mkdirSync(tmpDir, { recursive: true });
     const tmpPath = resolve(tmpDir, 'val_test.mp4');
-    writeFileSync(tmpPath, bin);
+
+    await adapter.generateScene({
+      scene_id: 'SCN_001',
+      duration_seconds: 5.0,
+      width: 832,
+      height: 480,
+      fps: 24,
+      prompt: 'Test prompt'
+    }, { outputPath: tmpPath });
 
     const check = validator.validateAsset(tmpPath, {
       expectedDuration: 5.0,

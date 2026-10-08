@@ -8,13 +8,14 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { DEFAULT_ASSEMBLY_CONFIG } from '../config/assembly-config.js';
+import { FFmpegDetector } from '../ffmpeg/ffmpeg-detector.js';
 
 export class FinalVideoValidator {
   /**
    * @param {object} [options={}]
    */
   constructor(options = {}) {
-    this.ffprobePath = options.ffprobePath || DEFAULT_ASSEMBLY_CONFIG.ffprobePath || 'ffprobe';
+    this.detector = new FFmpegDetector(options);
   }
 
   /**
@@ -71,22 +72,56 @@ export class FinalVideoValidator {
       }
     }
 
-    // 5. FFprobe Deep Stream Inspection (if installed)
-    const probe = this._probeStreams(videoPath);
-    if (probe) {
-      details.ffprobe = probe;
-      if (!probe.hasVideo) {
-        errors.push('Final video does not contain a video stream.');
-      }
-      if (!probe.hasAudio) {
-        warnings.push('Final video does not contain an embedded audio stream.');
-      }
-      if (expectedDurationSeconds && probe.duration) {
-        const diff = Math.abs(probe.duration - expectedDurationSeconds);
-        if (diff > 2.0) {
-          warnings.push(`Final video duration (${probe.duration.toFixed(2)}s) differs from timeline (${expectedDurationSeconds.toFixed(2)}s).`);
+    // 5. FFprobe Deep Stream Inspection
+    const ffprobeBin = this.detector.getFFprobePath();
+    const ffmpegBin = this.detector.getFFmpegPath();
+
+    const probeRes = spawnSync(ffprobeBin, [
+      '-v', 'error',
+      '-show_entries', 'stream=codec_type,codec_name,width,height,r_frame_rate:format=duration,format_name',
+      '-of', 'json',
+      videoPath
+    ], { encoding: 'utf8', timeout: 5000, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    if (probeRes.error || probeRes.status !== 0 || !probeRes.stdout) {
+      errors.push(`ffprobe validation failed: ${probeRes.stderr || probeRes.error?.message || 'moov atom not found or unreadable MP4'}`);
+    } else {
+      try {
+        const data = JSON.parse(probeRes.stdout);
+        const streams = data.streams || [];
+        const hasVideo = streams.some((s) => s.codec_type === 'video');
+        const hasAudio = streams.some((s) => s.codec_type === 'audio');
+        const duration = parseFloat(data.format?.duration || '0');
+
+        details.ffprobe = { hasVideo, hasAudio, duration, streams };
+
+        if (!hasVideo) {
+          errors.push('Final video does not contain a video stream.');
         }
+        if (duration <= 0) {
+          errors.push('Final video has zero duration.');
+        }
+        if (expectedDurationSeconds && duration > 0) {
+          const diff = Math.abs(duration - expectedDurationSeconds);
+          if (diff > 2.0) {
+            warnings.push(`Final video duration (${duration.toFixed(2)}s) differs from timeline (${expectedDurationSeconds.toFixed(2)}s).`);
+          }
+        }
+      } catch (err) {
+        errors.push(`Failed to parse ffprobe json output: ${err.message}`);
       }
+    }
+
+    // 6. FFmpeg Decode Integrity Test
+    const decodeRes = spawnSync(ffmpegBin, [
+      '-v', 'error',
+      '-i', videoPath,
+      '-f', 'null',
+      '-'
+    ], { encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    if (decodeRes.status !== 0 || (decodeRes.stderr && decodeRes.stderr.includes('moov atom not found'))) {
+      errors.push(`FFmpeg decode error: ${decodeRes.stderr || 'Container decoding failed'}`);
     }
 
     const status = errors.length > 0 ? 'FAIL' : warnings.length > 0 ? 'WARN' : 'PASS';
@@ -98,30 +133,5 @@ export class FinalVideoValidator {
       warnings,
       details
     };
-  }
-
-  _probeStreams(videoPath) {
-    if (!this.ffprobePath) return null;
-    try {
-      if (!path.isAbsolute(this.ffprobePath) || !fs.existsSync(this.ffprobePath)) {
-        return null;
-      }
-      const res = spawnSync(this.ffprobePath, [
-        '-v', 'error',
-        '-show_entries', 'stream=codec_type,codec_name,width,height,r_frame_rate:format=duration',
-        '-of', 'json',
-        videoPath
-      ], { encoding: 'utf8', timeout: 1000, stdio: ['ignore', 'pipe', 'pipe'] });
-
-      if (!res.error && res.status === 0 && res.stdout) {
-        const data = JSON.parse(res.stdout);
-        const streams = data.streams || [];
-        const hasVideo = streams.some((s) => s.codec_type === 'video');
-        const hasAudio = streams.some((s) => s.codec_type === 'audio');
-        const duration = parseFloat(data.format?.duration || '0');
-        return { hasVideo, hasAudio, duration, streams };
-      }
-    } catch (_) {}
-    return null;
   }
 }

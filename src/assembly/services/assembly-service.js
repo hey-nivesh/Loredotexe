@@ -5,6 +5,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { DEFAULT_ASSEMBLY_CONFIG, PHASE6_MODES, RENDER_PROFILES } from '../config/assembly-config.js';
 import { NarrationSegmenter } from '../narration/narration-segmenter.js';
 import { TimelineBuilder } from '../narration/timeline-builder.js';
@@ -18,6 +19,7 @@ import { FFmpegDetector } from '../ffmpeg/ffmpeg-detector.js';
 import { MediaNormalizer } from '../ffmpeg/media-normalizer.js';
 import { FFmpegAssembler } from '../ffmpeg/ffmpeg-assembler.js';
 import { FinalVideoValidator } from '../validation/final-video-validator.js';
+import { MediaValidator } from '../../media/validation/media-validator.js';
 import { AssemblyRepository } from '../storage/assembly-repository.js';
 import { FinalAssetRegistry } from '../storage/final-asset-registry.js';
 import { assertValidTransition } from '../../projects/project.transitions.js';
@@ -299,8 +301,7 @@ export class AssemblyService {
           const fallbackPath = path.join(this.config.tempDir, `fallback_${scene.scene_id}.mp4`);
           if (!fs.existsSync(fallbackPath)) {
             fs.mkdirSync(path.dirname(fallbackPath), { recursive: true });
-            const fallbackBuf = Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32, 0x00, 0x00, 0x00, 0x00, 0x69, 0x73, 0x6f, 0x6d, 0x6d, 0x70, 0x34, 0x32]);
-            fs.writeFileSync(fallbackPath, fallbackBuf);
+            this._generateFallbackMockSceneClip(fallbackPath, scene.scene_id, scene.duration_seconds || 5.0);
           }
           clips.push({ sceneId: scene.scene_id, inputPath: fallbackPath });
         }
@@ -308,6 +309,35 @@ export class AssemblyService {
     }
 
     return clips;
+  }
+
+  /**
+   * Generates a valid fallback scene MP4 clip via FFmpeg.
+   * @private
+   */
+  _generateFallbackMockSceneClip(outputPath, sceneId, durationSeconds) {
+    const detector = new FFmpegDetector(this.config);
+    const ffmpegBin = detector.getFFmpegPath();
+    const duration = Math.max(0.5, durationSeconds || 5.0);
+
+    const args = [
+      '-y',
+      '-f', 'lavfi',
+      '-i', `color=c=0x181824:s=854x480:r=24:d=${duration}`,
+      '-f', 'lavfi',
+      '-i', `anullsrc=r=44100:cl=stereo:d=${duration}`,
+      '-c:v', 'libx264',
+      '-tune', 'stillimage',
+      '-preset', 'ultrafast',
+      '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-shortest',
+      '-movflags', '+faststart',
+      outputPath.replace(/\\/g, '/')
+    ];
+
+    spawnSync(ffmpegBin, args, { encoding: 'utf8', timeout: 30000, stdio: ['ignore', 'pipe', 'pipe'] });
   }
 
   /**

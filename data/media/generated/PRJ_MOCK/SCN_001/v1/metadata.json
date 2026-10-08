@@ -1,26 +1,26 @@
 {
-  "asset_id": "ASSET_SCN_001_v1_af7fddd8",
+  "asset_id": "ASSET_SCN_001_v1_028447a6",
   "project_id": "PRJ_MOCK",
   "scene_id": "SCN_001",
   "type": "video",
   "provider": "mock",
   "model": "mock-video",
   "version": 1,
-  "file_path": "E:\\Personal Projects\\Loredotexe\\data\\media\\generated\\PRJ_MOCK\\SCN_001\\v1\\scene.mp4",
-  "file_hash": "5eaf8ce96a57194fb82f1ac40ef3264f4c23406ea236c102c908718f92c91085",
+  "file_path": "E:/Personal Projects/Loredotexe/data/media/generated/PRJ_MOCK/SCN_001/v1/scene.mp4",
+  "file_hash": "90397356e205a537c775aae89e650240699bb034ff2e3405cc572d6377cef59d",
   "prompt_hash": "1fa8f72fe8a0f01c606d8f742fe775987bc78daf9e96e586f26a780989c75698",
   "generation_parameters": {
     "width": 832,
     "height": 480,
-    "fps": 16,
+    "fps": 24,
     "duration_seconds": 4,
     "prompt": "Retry test"
   },
   "duration_seconds": 4,
   "width": 832,
   "height": 480,
-  "fps": 16,
-  "file_size_bytes": 544,
-  "created_at": "2026-10-07T19:59:09.298Z",
+  "fps": 24,
+  "file_size_bytes": 7637,
+  "created_at": "2026-10-08T18:57:34.475Z",
   "status": "VALID"
 }

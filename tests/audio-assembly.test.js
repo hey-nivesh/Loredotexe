@@ -8,6 +8,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createDatabaseConnection, runMigrations } from '../src/db/connection.js';
+import { spawnSync } from 'node:child_process';
+import { MockVideoModelAdapter } from '../src/media/adapters/mock-video-adapter.js';
 import {
   AssemblyService,
   NarrationSegmenter,
@@ -50,7 +52,7 @@ function ensureProject(projectId) {
   `).run(projectId, projectId, projectId);
 }
 
-['test-prj-phase-6', 'PRJ_ASY_01', 'PRJ_ASY_PARTIAL', 'PRJ_RESUME_ASM'].forEach(ensureProject);
+['test-prj-phase-6', 'PRJ_ASY_01', 'PRJ_ASY_PARTIAL', 'PRJ_RESUME_ASM', 'PRJ_REGRESSION_FINAL_01'].forEach(ensureProject);
 
 describe('Phase 6 — Voice + Subtitles + Final Video Assembly Test Suite', () => {
   before(() => {
@@ -257,49 +259,60 @@ describe('Phase 6 — Voice + Subtitles + Final Video Assembly Test Suite', () =
   // 13. FFmpegAssembler Mock Video Assembly
   test('13. FFmpegAssembler creates valid assembled MP4 container with SHA-256 hash', async () => {
     const assembler = new FFmpegAssembler({ renderProfile: 'LOW' });
+    const tts = new MockTTSAdapter();
+    const mediaAdapter = new MockVideoModelAdapter();
+
     const outFinal = path.join(testTempDir, 'final_test.mp4');
-    const dummyAudio = path.join(testTempDir, 'audio_test.wav');
-    fs.writeFileSync(dummyAudio, 'RIFF44WAVE');
+    const validAudio = path.join(testTempDir, 'audio_test.wav');
+    const sceneVideo = path.join(testTempDir, 'scene_test.mp4');
+
+    const audioRes = await tts.synthesize('Test audio', { outputPath: validAudio });
+    await mediaAdapter.generateScene({ scene_id: 'S_TEST', duration_seconds: 5.0 }, { outputPath: sceneVideo });
 
     const result = await assembler.assembleVideo({
-      sceneVideoPaths: [path.join(testTempDir, 'norm_scene.mp4')],
-      masterAudioPath: dummyAudio,
+      sceneVideoPaths: [sceneVideo],
+      masterAudioPath: validAudio,
       outputPath: outFinal,
-      totalDurationSeconds: 10.0,
-      useFfmpeg: false
+      totalDurationSeconds: 5.0,
+      useFfmpeg: true
     });
 
     assert.ok(fs.existsSync(outFinal));
-    assert.strictEqual(result.durationSeconds, 10.0);
+    assert.strictEqual(result.durationSeconds, 5.0);
     assert.ok(result.fileHash);
     assert.strictEqual(result.fileHash.length, 64);
   });
 
   // 14. Final Video Validation
-  test('14. FinalVideoValidator verifies complete deliverable package and flags missing assets', () => {
+  test('14. FinalVideoValidator verifies complete deliverable package and flags missing assets', async () => {
     const validator = new FinalVideoValidator();
+    const assembler = new FFmpegAssembler({ renderProfile: 'LOW' });
+    const tts = new MockTTSAdapter();
+    const mediaAdapter = new MockVideoModelAdapter();
+
     const validVideo = path.join(testTempDir, 'val_final.mp4');
     const validAudio = path.join(testTempDir, 'val_audio.wav');
     const validSub = path.join(testTempDir, 'val_sub.srt');
+    const sceneVideo = path.join(testTempDir, 'val_scene.mp4');
 
-    // Create valid mock MP4 container
-    const assembler = new FFmpegAssembler();
-    const mp4Buf = assembler._generateDeterministicFinalMp4({
-      durationSeconds: 10.0,
-      width: 854,
-      height: 480,
-      fps: 30,
-      sceneCount: 2
-    });
-    fs.writeFileSync(validVideo, mp4Buf);
-    fs.writeFileSync(validAudio, 'RIFFwav');
+    await tts.synthesize('Hello from narration', { outputPath: validAudio });
+    await mediaAdapter.generateScene({ scene_id: 'S_VAL', duration_seconds: 5.0 }, { outputPath: sceneVideo });
     fs.writeFileSync(validSub, '1\n00:00:00,000 --> 00:00:05,000\nHello\n');
+
+    await assembler.assembleVideo({
+      sceneVideoPaths: [sceneVideo],
+      masterAudioPath: validAudio,
+      subtitlePath: validSub,
+      outputPath: validVideo,
+      totalDurationSeconds: 5.0,
+      useFfmpeg: true
+    });
 
     const passCheck = validator.validateFinalVideo({
       videoPath: validVideo,
       audioPath: validAudio,
       subtitlePath: validSub,
-      expectedDurationSeconds: 10.0
+      expectedDurationSeconds: 5.0
     });
     assert.strictEqual(passCheck.valid, true);
     assert.ok(['PASS', 'WARN'].includes(passCheck.status));
@@ -451,4 +464,59 @@ describe('Phase 6 — Voice + Subtitles + Final Video Assembly Test Suite', () =
     assert.ok(p6.nodes.some((n) => n.name.includes('Execute Final Video Assembly') || n.name.includes('Assembly')));
     assert.ok(master.nodes.some((n) => n.name.includes('Execute Phase 6 Audio & Video Assembly')));
   });
+
+  // 23. Final Assembled MP4 Deep FFprobe & FFmpeg Regression Test
+  test('23. Final assembled MP4 contains valid moov atom, video/audio streams, and passes FFmpeg decode test with exit code 0', async () => {
+    const service = new AssemblyService(db, {
+      outputDir: path.join(testFinalDir, 'regression_final'),
+      tempDir: path.join(testTempDir, 'regression_final')
+    });
+
+    const result = await service.assembleProject({
+      scriptPackage: sampleInput.script_package,
+      storyboardPackage: sampleInput.storyboard_package,
+      mediaManifest: sampleInput.media_manifest,
+      projectId: 'PRJ_REGRESSION_FINAL_01',
+      options: { mode: 'mock' }
+    });
+
+    const finalPath = result.final_video.path;
+    assert.ok(fs.existsSync(finalPath), `Final video not found at ${finalPath}`);
+
+    const detector = new FFmpegDetector();
+    const ffprobeBin = detector.getFFprobePath();
+    const ffmpegBin = detector.getFFmpegPath();
+
+    // 1. Run ffprobe inspection
+    const probeRes = spawnSync(ffprobeBin, [
+      '-v', 'error',
+      '-show_entries', 'format=format_name,duration:stream=codec_type,codec_name,width,height',
+      '-of', 'json',
+      finalPath
+    ], { encoding: 'utf8' });
+
+    assert.strictEqual(probeRes.status, 0, `ffprobe failed on final.mp4: ${probeRes.stderr}`);
+    const probeData = JSON.parse(probeRes.stdout);
+
+    assert.ok(probeData.format.format_name.includes('mp4') || probeData.format.format_name.includes('mov'));
+    const duration = parseFloat(probeData.format.duration);
+    assert.ok(duration > 0, `Expected duration > 0, got ${duration}`);
+
+    const videoStream = probeData.streams.find((s) => s.codec_type === 'video');
+    assert.ok(videoStream, 'Missing video stream in final.mp4');
+    assert.strictEqual(videoStream.codec_name, 'h264');
+    assert.ok(videoStream.width > 0 && videoStream.height > 0);
+
+    // 2. Run ffmpeg decode test
+    const decodeRes = spawnSync(ffmpegBin, [
+      '-v', 'error',
+      '-i', finalPath,
+      '-f', 'null',
+      '-'
+    ], { encoding: 'utf8' });
+
+    assert.strictEqual(decodeRes.status, 0, `ffmpeg decode failed on final.mp4: ${decodeRes.stderr}`);
+    assert.strictEqual(decodeRes.stderr.trim(), '', 'Expected zero decode errors in ffmpeg output');
+  });
 });
+

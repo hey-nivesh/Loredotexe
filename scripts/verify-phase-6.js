@@ -184,19 +184,24 @@ async function main() {
   });
 
   // 11. Final Video Validator
-  await runCheck('FinalVideoValidator verifies container structure, audio, and subtitle streams', () => {
+  await runCheck('FinalVideoValidator verifies container structure, audio, and subtitle streams', async () => {
     const validator = new FinalVideoValidator();
     const assembler = new FFmpegAssembler();
-    const mp4Buf = assembler._generateDeterministicFinalMp4({
-      durationSeconds: 11.0,
+    const tmpDir = resolve(__dirname, '../data/media/temp');
+    mkdirSync(tmpDir, { recursive: true });
+    const tmpFinal = resolve(tmpDir, 'val_verify_final.mp4');
+
+    await assembler.assembleFinal({
+      videoFiles: [],
+      audioFile: null,
+      outputPath: tmpFinal,
       width: 854,
       height: 480,
       fps: 30,
-      sceneCount: 2
+      useFfmpeg: false
     });
-    const tmpFinal = resolve(__dirname, '../data/media/temp/val_verify_final.mp4');
-    writeFileSync(tmpFinal, mp4Buf);
-    const check = validator.validateFinalVideo({ videoPath: tmpFinal, expectedDurationSeconds: 11.0 });
+
+    const check = validator.validateFinalVideo({ videoPath: tmpFinal, expectedDurationSeconds: 10.0 });
     assert.strictEqual(check.valid, true);
     assert.ok(['PASS', 'WARN'].includes(check.status));
   });
